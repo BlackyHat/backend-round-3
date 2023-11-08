@@ -1,0 +1,1 @@
+{"version":3,"file":"bad-url-error.js","sourceRoot":"","sources":["../../../src/middlewares/bad-url-error.ts"],"names":[],"mappings":"AAAA,MAAM,CAAC,OAAO,GAAG,CACf,GAAoB,EACpB,GAAqB,EACrB,IAA0B,EAC1B,EAAE;IACF,GAAG;SACA,MAAM,CAAC,GAAG,CAAC;SACX,IAAI,CAAC,EAAE,MAAM,EAAE,OAAO,EAAE,KAAK,EAAE,6BAA6B,EAAE,CAAC,CAAC;AACrE,CAAC,CAAC"}
