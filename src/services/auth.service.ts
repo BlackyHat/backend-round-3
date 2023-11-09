@@ -1,9 +1,17 @@
-import { compare } from 'bcryptjs';
-import { findOne, createOne, findByIdAndUpdate } from '../db';
 import { sign } from 'jsonwebtoken';
+import { compare, hash } from 'bcryptjs';
+import { v4 } from 'uuid';
+const {
+  findOne,
+  findOne2,
+  createOne,
+  findByIdAndUpdate,
+} = require('./dbUsers.service');
 
-import { NotAuthorizedError, ConflictError } from '../utils/app-errors';
-const { JWT_SECRET, ACCESS_TOKEN_TTL } = process.env;
+import { NotAuthorizedError } from '../utils/app-errors';
+// const { JWT_SECRET, ACCESS_TOKEN_TTL } = process.env;
+const JWT_SECRET = '!@#$%^&*()';
+const ACCESS_TOKEN_TTL = '1d';
 
 interface NewUser {
   email: string;
@@ -12,26 +20,23 @@ interface NewUser {
 
 const signUp = async (credentials: NewUser) => {
   const { email, password } = credentials;
-  const candidate = await findOne({ email });
 
-  if (candidate) {
-    throw new ConflictError('Email in use.');
-  }
-
-  const { id } = await createOne({ email, password });
-
-  const access_token = sign({ id }, String(JWT_SECRET), {
+  const id = v4();
+  const token = sign({ id }, String(JWT_SECRET), {
     expiresIn: ACCESS_TOKEN_TTL,
   });
+  const hashPass = await hash(password, 10);
 
-  const refresh_token = sign({ id }, String(JWT_SECRET));
-
-  const updatedUser = await findByIdAndUpdate(id, {
-    access_token,
-    refresh_token,
-  });
-
-  return updatedUser;
+  const candidate = await findOne('689c88ab-9733-4534-a45f-d65d74aa8b6f');
+  if (candidate) {
+    throw new Error('No result ID');
+  }
+  const candidate2 = await findOne('333333ww31233w@i.ua');
+  if (candidate2) {
+    throw new Error('No result email');
+  }
+  await createOne({ id, email, password: hashPass, token, links: '[{}]' });
+  return { token };
 };
 
 const signIn = async (credentials) => {
@@ -47,11 +52,11 @@ const signIn = async (credentials) => {
     throw new NotAuthorizedError('Email or password is wrong');
   }
 
-  const access_token = sign({ id: user.id }, String(JWT_SECRET), {
+  const token = sign({ id: user.id }, String(JWT_SECRET), {
     expiresIn: ACCESS_TOKEN_TTL,
   });
 
-  const updatedUser = await findByIdAndUpdate(user.id, { access_token });
+  const updatedUser = await findByIdAndUpdate(user.id, token);
   return updatedUser;
 };
 

@@ -1,6 +1,6 @@
 const { Request, Response, NextFunction } = require('express');
 const jwt = require('jsonwebtoken');
-const db = require('../db');
+const { findOne } = require('../services');
 
 const { NotAuthorizedError } = require('../utils/app-errors');
 const { JWT_SECRET } = process.env;
@@ -30,12 +30,9 @@ export const authMiddleware = async (
 
   try {
     const { id } = jwt.verify(token, JWT_SECRET);
-    const user = await db.findById(id);
+    const user = await findOne(id);
 
-    if (
-      !user ||
-      (token !== user.access_token && token !== user.refresh_token)
-    ) {
+    if (!user || token !== user.token) {
       next(new NotAuthorizedError('Not authorized.'));
     }
 

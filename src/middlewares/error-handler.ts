@@ -1,6 +1,11 @@
-import * as express from 'express';
+import { NextFunction, Request, Response } from 'express';
+import { AppError } from 'src/utils/app-errors';
 
-export default ((err, _req, res, _next) => {
-  res.status(err.status || 500);
-  res.json({ status: 'false', error: err.message });
-}) as express.ErrorRequestHandler;
+export default (
+  err: AppError,
+  _req: Request,
+  res: Response,
+  _next: NextFunction
+) => {
+  res.status(err.status || 500).json({ status: 'false', error: err.message });
+};

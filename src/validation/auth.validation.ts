@@ -1,5 +1,5 @@
 import { BadRequestError } from '../utils/app-errors';
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 
 interface NewUser {
   email: string;
@@ -24,7 +24,7 @@ export const validateAuth = (
   const { email, password } = req.body;
 
   const isEmailValid =
-    minLength(email, 3) && maxLength(email, 32) && isEmail(email);
+    minLength(email, 8) && maxLength(email, 48) && isEmail(email);
   const isPasswordValid = minLength(password, 6) && maxLength(password, 32);
 
   if (!isEmailValid || !isPasswordValid) {
