@@ -7,11 +7,10 @@ const signInController = async (
   next: NextFunction
 ) => {
   try {
-    const { id, access_token, refresh_token } = await signIn(req.body);
-
+    const { id, token } = await signIn(req.body);
     res.status(200).json({
       success: 'true',
-      data: { id, access_token, refresh_token },
+      data: { id, token },
     });
   } catch (error) {
     next(error);

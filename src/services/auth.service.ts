@@ -1,15 +1,17 @@
 import { sign } from 'jsonwebtoken';
 import { compare, hash } from 'bcryptjs';
+
 import { v4 } from 'uuid';
-const {
+import {
   findOne,
-  findOne2,
   createOne,
   findByIdAndUpdate,
-} = require('./dbUsers.service');
+  IUser,
+} from './dbUsers.service';
 
-import { NotAuthorizedError } from '../utils/app-errors';
+import { ConflictError, NotAuthorizedError } from '../utils/app-errors';
 // const { JWT_SECRET, ACCESS_TOKEN_TTL } = process.env;
+console.log('process.env', process.env);
 const JWT_SECRET = '!@#$%^&*()';
 const ACCESS_TOKEN_TTL = '1d';
 
@@ -27,23 +29,20 @@ const signUp = async (credentials: NewUser) => {
   });
   const hashPass = await hash(password, 10);
 
-  const candidate = await findOne('689c88ab-9733-4534-a45f-d65d74aa8b6f');
-  if (candidate) {
-    throw new Error('No result ID');
+  const candidate = await findOne(email);
+  if (candidate && candidate.length > 0) {
+    throw new ConflictError('Email in use.');
   }
-  const candidate2 = await findOne('333333ww31233w@i.ua');
-  if (candidate2) {
-    throw new Error('No result email');
-  }
-  await createOne({ id, email, password: hashPass, token, links: '[{}]' });
+
+  await createOne({ id, email, password: hashPass, token });
   return { token };
 };
 
-const signIn = async (credentials) => {
+const signIn = async (
+  credentials: Pick<IUser, 'email' | 'password'>
+): Promise<IUser> => {
   const { email, password } = credentials;
-
-  const user = await findOne({ email });
-
+  const [user] = await findOne(email);
   if (!user) {
     throw new NotAuthorizedError('Email or password is wrong');
   }
@@ -56,8 +55,8 @@ const signIn = async (credentials) => {
     expiresIn: ACCESS_TOKEN_TTL,
   });
 
-  const updatedUser = await findByIdAndUpdate(user.id, token);
-  return updatedUser;
+  const response = await findByIdAndUpdate(user.id, token);
+  return response?.Attributes as IUser;
 };
 
 export { signUp, signIn };
