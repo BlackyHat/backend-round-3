@@ -1,7 +1,7 @@
 import express from 'express';
 import { authRouter } from './routes';
-import badUrlError from './middlewares/bad-url-error';
-import errorHandler from './middlewares/error-handler';
+import badUrlError from './functions/middlewares/bad-url-error';
+import errorHandler from './functions/middlewares/error-handler';
 const app = express();
 
 app.use(express.json());

@@ -1,4 +1,19 @@
-import { signUp, signIn } from './auth.service';
 import { createOne, findOne, findByIdAndUpdate } from './dbUsers.service';
+import {
+  createUserLink,
+  deactivateUserLink,
+  getUserLinksList,
+  getOriginLink,
+  deactivateExpiredLinks,
+} from './dbLinks.service';
 
-export { signUp, signIn, createOne, findOne, findByIdAndUpdate  };
+export {
+  createOne,
+  findOne,
+  findByIdAndUpdate,
+  createUserLink,
+  deactivateUserLink,
+  getUserLinksList,
+  getOriginLink,
+  deactivateExpiredLinks,
+};

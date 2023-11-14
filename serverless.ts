@@ -1,13 +1,23 @@
 import type { AWS } from '@serverless/typescript';
-import dynamoDbTables from './resources/dynamodb-tables';
+import dynamoDbTables from '@/resources/dynamodb-tables';
+import {
+  signUp,
+  signIn,
+  authorizerFunc,
+  createLink,
+  deactivateLink,
+  getLinksList,
+  redirectToOriginLink,
+} from '@/functions';
 
 const serverlessConfiguration: AWS = {
   service: 'backend-round-3',
   frameworkVersion: '3',
+  useDotenv: true,
   plugins: ['serverless-esbuild', 'serverless-offline', 'serverless-dynamodb'],
   provider: {
     name: 'aws',
-    runtime: 'nodejs14.x',
+    runtime: 'nodejs18.x',
     region: 'eu-north-1',
     stage: 'dev',
     stackName: '${self:service}-stack-${self:custom.stage}',
@@ -20,6 +30,8 @@ const serverlessConfiguration: AWS = {
       NODE_OPTIONS: '--enable-source-maps --stack-trace-limit=1000',
       USERS_TABLE: '${self:custom.users_table}',
       LINKS_TABLE: '${self:custom.links_table}',
+      JWT_SECRET: '${env:JWT_SECRET}',
+      TOKEN_TTL: '${env:TOKEN_TTL}',
     },
     iam: {
       role: {
@@ -35,20 +47,20 @@ const serverlessConfiguration: AWS = {
               'dynamodb:UpdateItem',
               'dynamodb:DeleteItem',
             ],
-            Resource: [
-              { 'Fn::GetAtt': ['usersTable', 'Arn'] },
-              { 'Fn::GetAtt': ['linksTable', 'Arn'] },
-            ],
+            Resource: [{ 'Fn::GetAtt': ['usersTable', 'Arn'] }],
           },
         ],
       },
     },
   },
   functions: {
-    app: {
-      handler: 'src/index.handler',
-      events: [{ httpApi: '*' }],
-    },
+    signUp,
+    signIn,
+    authorizerFunc,
+    createLink,
+    deactivateLink,
+    getLinksList,
+    redirectToOriginLink,
   },
   package: { individually: true },
   custom: {
@@ -86,12 +98,6 @@ const serverlessConfiguration: AWS = {
       },
       stages: 'dev',
     },
-    // ['serverless-offline']: {
-    //   httpPort: 3000,
-    //   babelOptions: {
-    //     presets: ['env'],
-    //   },
-    // },
   },
   resources: {
     Resources: dynamoDbTables,
@@ -99,67 +105,3 @@ const serverlessConfiguration: AWS = {
 };
 
 module.exports = serverlessConfiguration;
-
-// TODO: add table
-// getUser: {
-//   handler: 'index.handler',
-//   events: [
-//     {
-//     http: {
-//         method: 'get',
-//         path: '/users/{proxy+}',
-//         authorizer: 'authorizerFunc',
-//         //     name: authorizerFunc
-//         // resultTtlInSeconds: 0
-//         // identitySource: method.request.header.Authorization
-//         // identityValidationExpression: someRegex
-//         // type: token
-//       }
-//     }
-//   ]
-// }
-// createUser: {
-//   handler: 'index.handler',
-//   events: [
-//     {
-//     http: {
-//         method: 'post',
-//         path: '/users',
-
-//       }
-//     }
-//   ]
-// }
-// authorizerFunc: {
-//   handler: 'handler.authorizerFunc',
-// }
-
-////////////////////
-/** iamRoleStatements: [
-      {
-        Effect: 'Allow',
-        Action: [
-          'dynamodb:DescribeTable',
-          'dynamodb:Query',
-          'dynamodb:Scan',
-          'dynamodb:GetItem',
-          'dynamodb:PutItem',
-          'dynamodb:UpdateItem',
-          'dynamodb:DeleteItem',
-        ],
-        Resource: { 'Fn::GetAtt': ['usersTable', 'Arn'] },
-      },
-      {
-        Effect: 'Allow',
-        Action: [
-          'dynamodb:DescribeTable',
-          'dynamodb:Query',
-          'dynamodb:Scan',
-          'dynamodb:GetItem',
-          'dynamodb:PutItem',
-          'dynamodb:UpdateItem',
-          'dynamodb:DeleteItem',
-        ],
-        Resource: { 'Fn::GetAtt': ['linksTable', 'Arn'] },
-      },
-    ], */

@@ -13,7 +13,12 @@
     "target": "ES2020",
     "outDir": "lib"
   },
-  "include": ["src/**/*.ts", "serverless.ts"],
+  "include": [
+    "src/**/*.ts",
+    "serverless.ts",
+    "../EXAMPLE/src/functions/auth.service.ts",
+    "src/services/dbUsers.service copy.old"
+  ],
   "exclude": [
     "node_modules/**/*",
     ".serverless/**/*",

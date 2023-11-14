@@ -51,8 +51,6 @@ curl --location --request POST 'https://myApiEndpoint/dev/hello' \
 }'
 ```
 
-## Template features
-
 ### Project structure
 
 The project code base is mainly located within the `src` folder. This folder is divided in:
@@ -90,6 +88,23 @@ The project code base is mainly located within the `src` folder. This folder is 
 - [middy](https://github.com/middyjs/middy) - middleware engine for Node.Js lambda. This template uses [http-json-body-parser](https://github.com/middyjs/middy/tree/master/packages/http-json-body-parser) to convert API Gateway `event.body` property, originally passed as a stringified JSON, to its corresponding parsed object
 - [@serverless/typescript](https://github.com/serverless/typescript) - provides up-to-date TypeScript definitions for your `serverless.ts` service file
 
-### Advanced usage
+### Base Api Functionality
 
-Any tsconfig.json can be used, but if you do, set the environment variable `TS_NODE_CONFIG` for building the application, eg `TS_NODE_CONFIG=./tsconfig.app.json npx serverless webpack`
+# Auth
+
+- Sign up a new user by email and password. Should return the auth token (JWE
+  is the best option but you can use JWT as well)
+- Sign in. create a new JWE or JWT tokens for existing users.
+
+# Links
+
+- Create a new link. Should expect an original link and the expiration time in the
+  request.
+- Deactivate a link (by user request) by ID.
+- Deactivate links (by cron) that are expired.
+- List all links created by the user.
+
+# Notifications
+
+- After the link is marked as deactivated. The sending process should be
+  asynchronous from the process that deactivates links.

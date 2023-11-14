@@ -1,3 +1,4 @@
+import { IUser } from '@/models/user.model';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
@@ -6,11 +7,8 @@ import {
   UpdateCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { AppError } from '../utils/app-errors';
 
-const USERS_TABLE = process.env.USERS_TABLE;
-const IS_OFFLINE = process.env.IS_OFFLINE;
-
+const { USERS_TABLE, IS_OFFLINE } = process.env;
 let client: DynamoDBClient;
 
 if (IS_OFFLINE === 'true') {
@@ -25,14 +23,7 @@ if (IS_OFFLINE === 'true') {
 } else {
   client = new DynamoDBClient({});
 }
-const dbClient = DynamoDBDocumentClient.from(client);
-
-export interface IUser {
-  email: string;
-  password: string;
-  id: string;
-  token: string;
-}
+const docClient = DynamoDBDocumentClient.from(client);
 
 async function createOne(userData: IUser) {
   const command = new PutCommand({
@@ -40,15 +31,15 @@ async function createOne(userData: IUser) {
     Item: userData,
   });
   try {
-    await dbClient.send(command);
+    await docClient.send(command);
   } catch (error) {
-    throw new AppError(500, error.message || 'Error creating new user');
+    throw new Error(error.message || 'Error creating new user');
   }
 }
 
-async function findOne(email: string): Promise<IUser[]> {
+async function findOne(email: string) {
   const query = new QueryCommand({
-    TableName: USERS_TABLE,
+    TableName: String(USERS_TABLE),
     IndexName: 'email_idx',
     KeyConditionExpression: 'email = :email',
     ExpressionAttributeValues: {
@@ -57,48 +48,51 @@ async function findOne(email: string): Promise<IUser[]> {
   });
 
   try {
-    const { Items } = await dbClient.send(query);
-    return Items as IUser[];
+    const { Items } = await docClient.send(query);
+    if (!Array.isArray(Items)) {
+      throw new Error('Could not retreive user');
+    }
+    return Items;
   } catch (error) {
-    throw new AppError(500, error.message || 'Could not retreive user');
+    throw new Error(error.message || 'Could not retreive user');
   }
 }
-async function findByID(id: string): Promise<IUser | null> {
+async function findByID(id: string) {
   const command = new GetCommand({
     TableName: String(USERS_TABLE),
     Key: { id: id },
   });
   try {
-    const { Item } = await dbClient.send(command);
+    const { Item } = await docClient.send(command);
     if (!Item) {
-      return null;
+      throw new Error('Could not retreive user');
     }
     return Item as IUser;
   } catch (error) {
-    throw new AppError(500, error.message || 'Could not retreive user');
+    throw new Error(error.message || 'Could not retreive user');
   }
 }
 async function findByIdAndUpdate(id: string, token: string) {
   const updateCommand = new UpdateCommand({
     TableName: String(USERS_TABLE),
     Key: { id: id },
-    UpdateExpression: 'SET #tokenAttr = :newValue',
+    UpdateExpression: 'SET #token = :newToken',
     ExpressionAttributeNames: {
-      '#tokenAttr': 'token',
+      '#token': 'token',
     },
     ExpressionAttributeValues: {
-      ':newValue': token,
+      ':newToken': token,
     },
     ReturnValues: 'ALL_NEW',
   });
   try {
-    const updateResponse = await dbClient.send(updateCommand);
+    const updateResponse = await docClient.send(updateCommand);
     if (!updateResponse) {
-      return null;
+      throw new Error('Error updating user data');
     }
     return updateResponse;
   } catch (error) {
-    throw new AppError(500, error.message || 'Error updating user data');
+    throw new Error(error.message || 'Error updating user data');
   }
 }
 export { createOne, findOne, findByIdAndUpdate, findByID };
