@@ -7,6 +7,8 @@ import {
   UpdateCommand,
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
+import { addQueueExpiredLinks } from './senderSQS.service';
+import { findByID } from './dbUsers.service';
 
 const { LINKS_TABLE, IS_OFFLINE } = process.env;
 let client: DynamoDBClient;
@@ -59,7 +61,12 @@ async function deactivateUserLink(userId: string, linkId: string) {
     if (!result.Attributes) {
       throw new Error(`No link with id:${linkId} finded`);
     }
-    return result.Attributes as ILink;
+    const linkData = result.Attributes as ILink;
+    const user = await findByID(userId);
+    await addQueueExpiredLinks(
+      JSON.stringify({ email: user.email, ...linkData })
+    );
+    return linkData;
   } catch (error) {
     throw new Error(error.message || 'Error to deactivate link');
   }

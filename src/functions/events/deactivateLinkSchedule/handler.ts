@@ -1,5 +1,5 @@
 import { deactivateExpiredLinks } from '@/services';
 
-export const deactivateLinks = async () => {
+export const deactivateLinkSchedule = async () => {
   await deactivateExpiredLinks();
 };

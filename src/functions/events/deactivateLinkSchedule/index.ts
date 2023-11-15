@@ -1,6 +1,6 @@
 import { handlerPath } from '@/libs/handler-resolver';
 export default {
-  handler: `${handlerPath(__dirname)}/run.deactivateLinks`,
+  handler: `${handlerPath(__dirname)}/handler.deactivateLinkSchedule`,
   events: [
     {
       eventBridge: {

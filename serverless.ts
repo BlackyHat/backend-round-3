@@ -3,12 +3,13 @@ import dynamoDbTables from '@/resources/dynamodb-tables';
 import {
   signUp,
   signIn,
-  authorizerFunc,
+  authorizer,
   createLink,
   deactivateLink,
   getLinksList,
   redirectToOriginLink,
-  deactivateLinks,
+  deactivateLinkNotify,
+  deactivateLinkSchedule,
 } from '@/functions';
 
 const serverlessConfiguration: AWS = {
@@ -33,6 +34,8 @@ const serverlessConfiguration: AWS = {
       LINKS_TABLE: '${self:custom.links_table}',
       JWT_SECRET: '${env:JWT_SECRET}',
       TOKEN_TTL: '${env:TOKEN_TTL}',
+      EMAIL_SENDER: '${env:EMAIL_SENDER}',
+      SQS_QUEUE_URL: { Ref: 'EmailSQSQueue' },
     },
     iam: {
       role: {
@@ -79,12 +82,21 @@ const serverlessConfiguration: AWS = {
                   ],
                 ],
               },
-              // { 'Fn::Sub:': '${usersTable.Arn}/index/*' },
-              // { 'Fn::Sub:': '${linksTable.Arn}/index/*' },
-              // !Sub "${MessagesDynamoDBTable.Arn}/index/*"
-              // { 'Fn::GetAtt': ['linksTable/index/*', 'Arn'] },
-              // { "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"},
             ],
+          },
+          {
+            Effect: 'Allow',
+            Action: [
+              'sqs:SendMessage',
+              'sqs:ReceiveMessage',
+              'sqs:DeleteMessage',
+            ],
+            Resource: { 'Fn::GetAtt': ['EmailSQSQueue', 'Arn'] },
+          },
+          {
+            Effect: 'Allow',
+            Action: ['ses:SendEmail'],
+            Resource: '*',
           },
         ],
       },
@@ -93,12 +105,13 @@ const serverlessConfiguration: AWS = {
   functions: {
     signUp,
     signIn,
-    authorizerFunc,
+    authorizer,
     createLink,
     deactivateLink,
     getLinksList,
     redirectToOriginLink,
-    deactivateLinks,
+    deactivateLinkNotify,
+    deactivateLinkSchedule,
   },
   package: { individually: true },
   custom: {
@@ -131,7 +144,15 @@ const serverlessConfiguration: AWS = {
     },
   },
   resources: {
-    Resources: dynamoDbTables,
+    Resources: {
+      ...dynamoDbTables,
+      EmailSQSQueue: {
+        Type: 'AWS::SQS::Queue',
+        Properties: {
+          QueueName: 'sqs-queue-${opt:stage, self:provider.stage}',
+        },
+      },
+    },
   },
 };
 

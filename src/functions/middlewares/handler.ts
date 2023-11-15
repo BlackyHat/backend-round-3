@@ -40,7 +40,7 @@ const generatePolicy = (
   return authResponse;
 };
 
-export const authorizerFunc = async (
+export const authorizer = async (
   event: APIGatewayTokenAuthorizerEvent,
   context: APIGatewayEventDefaultAuthorizerContext,
   callback: AuthorizerCallback
