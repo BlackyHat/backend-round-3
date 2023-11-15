@@ -12,6 +12,6 @@ export interface ILink {
   originalLink: string;
   isActive: boolean;
   createdAt: number;
-  lifetime: LinkLifetime;
+  expiredAt: number | LinkLifetime.ONE_TIME;
   visited: number;
 }

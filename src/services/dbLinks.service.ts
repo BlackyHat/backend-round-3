@@ -2,10 +2,8 @@ import { ILink, LinkLifetime } from '@/models/link.model';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
-  GetCommand,
   PutCommand,
   QueryCommand,
-  DeleteCommand,
   UpdateCommand,
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
@@ -35,7 +33,7 @@ async function createUserLink(linkData: ILink) {
 
   try {
     const result = await docClient.send(command);
-    return result.Attributes;
+    return result.Attributes as ILink;
   } catch (error) {
     throw new Error(error.message || 'Error creating new link');
   }
@@ -61,7 +59,7 @@ async function deactivateUserLink(userId: string, linkId: string) {
     if (!result.Attributes) {
       throw new Error(`No link with id:${linkId} finded`);
     }
-    return result.Attributes;
+    return result.Attributes as ILink;
   } catch (error) {
     throw new Error(error.message || 'Error to deactivate link');
   }
@@ -82,7 +80,7 @@ async function getUserLinksList(userId: string) {
     if (!Array.isArray(Items)) {
       throw new Error('Could not retreive list link');
     }
-    return Items;
+    return Items as ILink[];
   } catch (error) {
     throw new Error(error.message || 'Error get user links list');
   }
@@ -100,17 +98,22 @@ async function getOriginLink(shortLink: string) {
 
   try {
     const { Items } = await docClient.send(query);
-
     if (!Array.isArray(Items)) {
       throw new Error('Could not retreive original link');
     }
-    const linkData = Items[0];
-    if (linkData.lifetime === LinkLifetime.ONE_TIME) {
+    const linkData: ILink = Items[0] as ILink;
+
+    if (!linkData.isActive) {
+      throw new Error('The link in no longer active');
+    }
+
+    if (linkData.expiredAt === LinkLifetime.ONE_TIME) {
+      //TODO::add deactivate +1 count conditions;
       await deactivateUserLink(linkData.userId, linkData.id);
     } else {
       await updateLinkVisit(linkData.userId, linkData.id);
     }
-    return Items[0];
+    return linkData;
   } catch (error) {
     throw new Error(error.message || 'Error getting original link');
   }
@@ -140,22 +143,37 @@ async function updateLinkVisit(userId: string, linkId: string) {
     throw new Error(error.message || 'Error creating new link');
   }
 }
+
 async function deactivateExpiredLinks() {
   const currentTime = Date.now();
-  const command = new ScanCommand({
+  const scanCommand = new ScanCommand({
     TableName: String(LINKS_TABLE),
-    Key: { id: linkId, userId },
-    ReturnValues: 'ALL_OLD',
+    FilterExpression:
+      'expiredAt < :currentTime AND isActive = :isActive AND lifetime <> :lifetimeOnce',
+    ExpressionAttributeValues: {
+      ':currentTime': currentTime,
+      ':isActive': true,
+      ':lifetimeOnce': LinkLifetime.ONE_TIME,
+    },
   });
 
   try {
-    const result = await docClient.send(command);
-    if (!result.Attributes) {
-      throw new Error(`No link with id:${linkId} finded`);
+    const result = await docClient.send(scanCommand);
+
+    const expiredLinks: ILink[] = result.Items as ILink[];
+
+    if (expiredLinks.length === 0) {
+      console.log('No links to update.');
+      return;
     }
-    return result.Attributes;
+    await Promise.all(
+      expiredLinks.map(({ id, userId }) => {
+        deactivateUserLink(userId, id);
+      })
+    );
+    console.log(`All expired links deactivated.`);
   } catch (error) {
-    throw new Error(error.message || 'Error creating new link');
+    throw new Error(error.message || 'Error deactivate expired links');
   }
 }
 

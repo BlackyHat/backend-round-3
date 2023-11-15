@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { formatJSONResponse } from '@/libs/api-gateway';
 import { middyfy } from '@/libs/lambda';
-import { getOriginalLink } from '@/services';
+import { getOriginLink } from '@/services';
 import createShortLink from '@/utils/create-shortLink';
 
 const redirectToOriginLink = async (
@@ -22,7 +22,7 @@ const redirectToOriginLink = async (
   }
 
   const shortURL = createShortLink({ host, protocol, stage, shortLink });
-  const linkData = await getOriginalLink(shortURL);
+  const linkData = await getOriginLink(shortURL);
 
   if (!linkData.originalLink) {
     return formatJSONResponse(404, {

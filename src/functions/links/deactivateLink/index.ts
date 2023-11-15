@@ -4,8 +4,8 @@ export default {
   events: [
     {
       http: {
-        method: 'deactivate',
-        path: 'api/links/{linkId}',
+        method: 'put',
+        path: 'api/links/deactivate/{linkId}',
         authorizer: 'authorizerFunc',
       },
     },

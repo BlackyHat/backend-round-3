@@ -8,6 +8,7 @@ import {
   deactivateLink,
   getLinksList,
   redirectToOriginLink,
+  deactivateLinks,
 } from '@/functions';
 
 const serverlessConfiguration: AWS = {
@@ -39,15 +40,51 @@ const serverlessConfiguration: AWS = {
           {
             Effect: 'Allow',
             Action: [
-              'dynamodb:DescribeTable',
               'dynamodb:Query',
               'dynamodb:Scan',
               'dynamodb:GetItem',
               'dynamodb:PutItem',
               'dynamodb:UpdateItem',
-              'dynamodb:DeleteItem',
             ],
-            Resource: [{ 'Fn::GetAtt': ['usersTable', 'Arn'] }],
+            Resource: [
+              { 'Fn::GetAtt': ['usersTable', 'Arn'] },
+              { 'Fn::GetAtt': ['linksTable', 'Arn'] },
+              {
+                'Fn::Join': [
+                  '/',
+                  [
+                    { 'Fn::GetAtt': ['usersTable', 'Arn'] },
+                    'index',
+                    'email_idx',
+                  ],
+                ],
+              },
+              {
+                'Fn::Join': [
+                  '/',
+                  [
+                    { 'Fn::GetAtt': ['linksTable', 'Arn'] },
+                    'index',
+                    'userId_idx',
+                  ],
+                ],
+              },
+              {
+                'Fn::Join': [
+                  '/',
+                  [
+                    { 'Fn::GetAtt': ['linksTable', 'Arn'] },
+                    'index',
+                    'shortLink_idx',
+                  ],
+                ],
+              },
+              // { 'Fn::Sub:': '${usersTable.Arn}/index/*' },
+              // { 'Fn::Sub:': '${linksTable.Arn}/index/*' },
+              // !Sub "${MessagesDynamoDBTable.Arn}/index/*"
+              // { 'Fn::GetAtt': ['linksTable/index/*', 'Arn'] },
+              // { "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"},
+            ],
           },
         ],
       },
@@ -61,16 +98,11 @@ const serverlessConfiguration: AWS = {
     deactivateLink,
     getLinksList,
     redirectToOriginLink,
+    deactivateLinks,
   },
   package: { individually: true },
   custom: {
     stage: 'dev',
-    table_throughputs: {
-      prod: 5,
-      default: 1,
-    },
-    table_throughput:
-      '${self:custom.table_throughputs.${self:custom.stage}, self:custom.table_throughputs.default}',
     users_table:
       '${self:service}-users-table-${opt:stage, self:provider.stage}',
     links_table:
@@ -93,7 +125,6 @@ const serverlessConfiguration: AWS = {
         heapInitial: '200m',
         heapMax: '1g',
         migrate: true,
-        seed: true,
         convertEmptyValues: true,
       },
       stages: 'dev',

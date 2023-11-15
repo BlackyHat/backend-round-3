@@ -8,7 +8,7 @@ import { middyfy } from '@/libs/lambda';
 import { createUserLink } from '@/services';
 import createShortLink from '@/utils/create-shortLink';
 
-import { ILink } from '@/models/link.model';
+import { ILink, LinkLifetime } from '@/models/link.model';
 import schema from './schema';
 
 const createLink: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
@@ -28,6 +28,10 @@ const createLink: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
       });
     }
     const shortLink = createShortLink({ host, protocol, stage });
+    const expiredAt =
+      lifetime === LinkLifetime.ONE_TIME
+        ? LinkLifetime.ONE_TIME
+        : parseInt(lifetime) * 24 * 3600 * 1000 + Date.now();
 
     const linkData: ILink = {
       id: v4(),
@@ -36,7 +40,7 @@ const createLink: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
       originalLink: link,
       isActive: true,
       createdAt: new Date().getTime(),
-      lifetime: lifetime,
+      expiredAt,
       visited: 0,
     };
 
