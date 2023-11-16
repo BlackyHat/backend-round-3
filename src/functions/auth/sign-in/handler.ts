@@ -17,26 +17,28 @@ const signIn: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
 ): Promise<APIGatewayProxyResult> => {
   try {
     const { email, password } = event.body;
+    const emailIdx = 'USER#'.concat(email);
 
-    const [user] = await findOne(email);
+    const [user] = await findOne(emailIdx);
     if (!user) {
-      return formatJSONResponse(401, { error: 'Email or password is wrong' });
+      throw new Error('Email or password is wrong');
     }
     if (!(await compare(password, user.password))) {
-      return formatJSONResponse(401, { error: 'Email or password is wrong' });
+      throw new Error('Email or password is wrong');
     }
-    const token = sign({ id: user.id }, String(JWT_SECRET), {
+    const access_token = sign({ userId: user.userId }, String(JWT_SECRET), {
       expiresIn: TOKEN_TTL,
     });
 
-    await findByIdAndUpdate(user.id, token);
+    await findByIdAndUpdate(user.userId, access_token);
 
     return formatJSONResponse(200, {
       success: 'true',
-      data: { id: user.id, token },
+      data: { id: user.id, access_token },
     });
   } catch (error) {
     return formatJSONResponse(error.statusCode || 500, {
+      success: 'false',
       error: error.message,
     });
   }

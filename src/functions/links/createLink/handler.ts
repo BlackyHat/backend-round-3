@@ -1,4 +1,4 @@
-import { v4 } from 'uuid';
+import { ulid } from 'ulidx';
 
 import {
   ValidatedEventAPIGatewayProxyEvent,
@@ -6,8 +6,7 @@ import {
 } from '@/libs/api-gateway';
 import { middyfy } from '@/libs/lambda';
 import { createUserLink } from '@/services';
-import createShortLink from '@/utils/create-shortLink';
-
+import createShortLink from '@/libs/create-shortLink';
 import { ILink, LinkLifetime } from '@/models/link.model';
 import schema from './schema';
 
@@ -24,6 +23,7 @@ const createLink: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
 
     if (!host) {
       return formatJSONResponse(500, {
+        success: 'false',
         error: "Can't get the current host",
       });
     }
@@ -33,8 +33,13 @@ const createLink: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
         ? LinkLifetime.ONE_TIME
         : parseInt(lifetime) * 24 * 3600 * 1000 + Date.now();
 
+    const linkId = ulid();
+
     const linkData: ILink = {
-      id: v4(),
+      PK: 'UL#'.concat(userId),
+      SK: 'LINK#'.concat(linkId),
+      GSI1PK: 'LINK#'.concat(shortLink),
+      linkId,
       userId,
       shortLink,
       originalLink: link,
@@ -45,12 +50,14 @@ const createLink: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
     };
 
     await createUserLink(linkData);
-    return formatJSONResponse(200, {
+
+    return formatJSONResponse(201, {
       success: 'true',
       data: linkData,
     });
   } catch (error) {
     return formatJSONResponse(error.statusCode || 500, {
+      success: 'false',
       error: error.message,
     });
   }

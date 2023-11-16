@@ -8,27 +8,29 @@ import {
 import { IUser } from '@/models/user.model';
 import { docClient } from '@/libs/dynamoDBClient';
 
-const { USERS_TABLE } = process.env;
+const TABLE = String(process.env.TABLE_NAME);
+const createUserPK = (id: string) => 'USER#'.concat(id);
 
 async function createOne(userData: IUser) {
   const command = new PutCommand({
-    TableName: String(USERS_TABLE),
+    TableName: TABLE,
     Item: userData,
+    ConditionExpression: 'attribute_not_exists(PK)',
   });
   try {
     await docClient.send(command);
   } catch (error) {
-    throw new Error(error.message || 'Error creating new user');
+    throw new Error(error || 'Error creating new user');
   }
 }
 
-async function findOne(email: string) {
+async function findOne(index: string) {
   const query = new QueryCommand({
-    TableName: String(USERS_TABLE),
-    IndexName: 'email_idx',
-    KeyConditionExpression: 'email = :email',
+    TableName: TABLE,
+    IndexName: 'GSI1',
+    KeyConditionExpression: 'GSI1PK = :index',
     ExpressionAttributeValues: {
-      ':email': email,
+      ':index': index,
     },
   });
 
@@ -42,11 +44,13 @@ async function findOne(email: string) {
     throw new Error(error.message || 'Could not retreive user');
   }
 }
-async function findByID(id: string) {
+
+async function findByID(userId: string) {
   const command = new GetCommand({
-    TableName: String(USERS_TABLE),
-    Key: { id: id },
+    TableName: TABLE,
+    Key: { PK: createUserPK(userId), SK: createUserPK(userId) },
   });
+
   try {
     const { Item } = await docClient.send(command);
     if (!Item) {
@@ -57,19 +61,21 @@ async function findByID(id: string) {
     throw new Error(error.message || 'Could not retreive user');
   }
 }
-async function findByIdAndUpdate(id: string, token: string) {
+
+async function findByIdAndUpdate(userId: string, access_token: string) {
   const updateCommand = new UpdateCommand({
-    TableName: String(USERS_TABLE),
-    Key: { id: id },
-    UpdateExpression: 'SET #token = :newToken',
+    TableName: TABLE,
+    Key: { PK: createUserPK(userId), SK: createUserPK(userId) },
+    UpdateExpression: 'SET #access_token = :newToken',
     ExpressionAttributeNames: {
-      '#token': 'token',
+      '#access_token': 'access_token',
     },
     ExpressionAttributeValues: {
-      ':newToken': token,
+      ':newToken': access_token,
     },
     ReturnValues: 'ALL_NEW',
   });
+
   try {
     const updateResponse = await docClient.send(updateCommand);
     if (!updateResponse) {

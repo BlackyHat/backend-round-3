@@ -10,11 +10,14 @@ import { ILink, LinkLifetime } from '@/models/link.model';
 import { addQueueExpiredLinks } from './senderSQS.service';
 import { findByID } from './dbUsers.service';
 
-const { LINKS_TABLE } = process.env;
+const TABLE = String(process.env.TABLE_NAME);
+
+const createLinkPK = (id: string) => 'UL#'.concat(id);
+const createLinkSK = (id: string) => 'LINK#'.concat(id);
 
 async function createUserLink(linkData: ILink) {
   const command = new PutCommand({
-    TableName: String(LINKS_TABLE),
+    TableName: TABLE,
     Item: linkData,
   });
 
@@ -28,8 +31,8 @@ async function createUserLink(linkData: ILink) {
 
 async function deactivateUserLink(userId: string, linkId: string) {
   const command = new UpdateCommand({
-    TableName: String(LINKS_TABLE),
-    Key: { id: linkId, userId },
+    TableName: TABLE,
+    Key: { PK: createLinkPK(userId), SK: createLinkSK(linkId) },
     UpdateExpression: 'SET #isActive = :isActive',
     ExpressionAttributeNames: {
       '#isActive': 'isActive',
@@ -49,6 +52,7 @@ async function deactivateUserLink(userId: string, linkId: string) {
     const linkData = result.Attributes as ILink;
     const user = await findByID(userId);
     await addQueueExpiredLinks({ email: user.email, ...linkData });
+
     return linkData;
   } catch (error) {
     throw new Error(error.message || 'Error to deactivate link');
@@ -57,12 +61,9 @@ async function deactivateUserLink(userId: string, linkId: string) {
 
 async function getUserLinksList(userId: string) {
   const query = new QueryCommand({
-    TableName: String(LINKS_TABLE),
-    IndexName: 'userId_idx',
-    KeyConditionExpression: 'userId = :userId',
-    ExpressionAttributeValues: {
-      ':userId': userId,
-    },
+    TableName: TABLE,
+    KeyConditionExpression: 'PK=:pk',
+    ExpressionAttributeValues: { ':pk': createLinkPK(userId) },
   });
 
   try {
@@ -76,13 +77,13 @@ async function getUserLinksList(userId: string) {
   }
 }
 
-async function getOriginLink(shortLink: string) {
+async function getOriginLink(index: string) {
   const query = new QueryCommand({
-    TableName: String(LINKS_TABLE),
-    IndexName: 'shortLink_idx',
-    KeyConditionExpression: 'shortLink = :shortLink',
+    TableName: TABLE,
+    IndexName: 'GSI1',
+    KeyConditionExpression: 'GSI1PK = :index',
     ExpressionAttributeValues: {
-      ':shortLink': shortLink,
+      ':index': index,
     },
   });
 
@@ -92,16 +93,12 @@ async function getOriginLink(shortLink: string) {
       throw new Error('Could not retreive original link');
     }
     const linkData: ILink = Items[0] as ILink;
-
     if (!linkData.isActive) {
       throw new Error('The link in no longer active');
     }
-
+    await updateLinkVisit(linkData.userId, linkData.linkId);
     if (linkData.expiredAt === LinkLifetime.ONE_TIME) {
-      //TODO::add deactivate +1 count conditions;
-      await deactivateUserLink(linkData.userId, linkData.id);
-    } else {
-      await updateLinkVisit(linkData.userId, linkData.id);
+      await deactivateUserLink(linkData.userId, linkData.linkId);
     }
     return linkData;
   } catch (error) {
@@ -111,8 +108,8 @@ async function getOriginLink(shortLink: string) {
 
 async function updateLinkVisit(userId: string, linkId: string) {
   const command = new UpdateCommand({
-    TableName: String(LINKS_TABLE),
-    Key: { id: linkId, userId },
+    TableName: TABLE,
+    Key: { PK: createLinkPK(userId), SK: createLinkSK(linkId) },
     UpdateExpression: 'SET #visited = #visited + :incrementValue',
     ExpressionAttributeNames: {
       '#visited': 'visited',
@@ -122,22 +119,25 @@ async function updateLinkVisit(userId: string, linkId: string) {
     },
     ReturnValues: 'ALL_NEW',
   });
-
   try {
     const result = await docClient.send(command);
     if (!result.Attributes) {
-      throw new Error(`No link with id:${linkId} finded`);
+      throw new Error(`No link founded`);
     }
     return result.Attributes;
   } catch (error) {
-    throw new Error(error.message || 'Error creating new link');
+    console.log('🚀 -----------------------------------🚀');
+    console.log('🚀 ~ updateLinkVisit ~ error:', error);
+    console.log('🚀 -----------------------------------🚀');
+
+    throw new Error(error.message || 'Error create new link');
   }
 }
 
 async function deactivateExpiredLinks() {
   const currentTime = Date.now();
   const scanCommand = new ScanCommand({
-    TableName: String(LINKS_TABLE),
+    TableName: TABLE,
     FilterExpression:
       'expiredAt < :currentTime AND isActive = :isActive AND lifetime <> :lifetimeOnce',
     ExpressionAttributeValues: {
@@ -146,19 +146,15 @@ async function deactivateExpiredLinks() {
       ':lifetimeOnce': LinkLifetime.ONE_TIME,
     },
   });
-
   try {
     const result = await docClient.send(scanCommand);
-
     const expiredLinks: ILink[] = result.Items as ILink[];
-
     if (expiredLinks.length === 0) {
-      console.log('No links to update.');
       return;
     }
     await Promise.all(
-      expiredLinks.map(({ id, userId }) => {
-        deactivateUserLink(userId, id);
+      expiredLinks.map(({ userId, linkId }) => {
+        deactivateUserLink(userId, linkId);
       })
     );
     console.log(`All expired links deactivated.`);

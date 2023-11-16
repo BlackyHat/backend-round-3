@@ -1,5 +1,4 @@
 import type { AWS } from '@serverless/typescript';
-import dynamoDbTables from '@/resources/dynamodb-tables';
 import {
   signUp,
   signIn,
@@ -13,7 +12,7 @@ import {
 } from '@/functions';
 
 const serverlessConfiguration: AWS = {
-  service: 'backend-round-3',
+  service: 'awesome-shortlinker-api',
   frameworkVersion: '3',
   useDotenv: true,
   plugins: ['serverless-esbuild', 'serverless-offline', 'serverless-dynamodb'],
@@ -30,8 +29,7 @@ const serverlessConfiguration: AWS = {
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
       NODE_OPTIONS: '--enable-source-maps --stack-trace-limit=1000',
-      USERS_TABLE: '${self:custom.users_table}',
-      LINKS_TABLE: '${self:custom.links_table}',
+      TABLE_NAME: '${self:custom.short_links_table}',
       JWT_SECRET: '${env:JWT_SECRET}',
       TOKEN_TTL: '${env:TOKEN_TTL}',
       EMAIL_SENDER: '${env:EMAIL_SENDER}',
@@ -50,35 +48,14 @@ const serverlessConfiguration: AWS = {
               'dynamodb:UpdateItem',
             ],
             Resource: [
-              { 'Fn::GetAtt': ['usersTable', 'Arn'] },
-              { 'Fn::GetAtt': ['linksTable', 'Arn'] },
+              { 'Fn::GetAtt': ['shortLinksTable', 'Arn'] },
               {
                 'Fn::Join': [
                   '/',
                   [
-                    { 'Fn::GetAtt': ['usersTable', 'Arn'] },
+                    { 'Fn::GetAtt': ['shortLinksTable', 'Arn'] },
                     'index',
-                    'email_idx',
-                  ],
-                ],
-              },
-              {
-                'Fn::Join': [
-                  '/',
-                  [
-                    { 'Fn::GetAtt': ['linksTable', 'Arn'] },
-                    'index',
-                    'userId_idx',
-                  ],
-                ],
-              },
-              {
-                'Fn::Join': [
-                  '/',
-                  [
-                    { 'Fn::GetAtt': ['linksTable', 'Arn'] },
-                    'index',
-                    'shortLink_idx',
+                    'GSI1',
                   ],
                 ],
               },
@@ -116,16 +93,14 @@ const serverlessConfiguration: AWS = {
   package: { individually: true },
   custom: {
     stage: 'dev',
-    users_table:
-      '${self:service}-users-table-${opt:stage, self:provider.stage}',
-    links_table:
-      '${self:service}-links-table-${opt:stage, self:provider.stage}',
+    short_links_table:
+      '${self:service}-short-links-table-${opt:stage, self:provider.stage}',
     esbuild: {
       bundle: true,
       minify: false,
       sourcemap: true,
       exclude: ['aws-sdk'],
-      target: 'node14',
+      target: 'node18',
       define: { 'require.resolve': undefined },
       platform: 'node',
       concurrency: 10,
@@ -146,7 +121,32 @@ const serverlessConfiguration: AWS = {
   },
   resources: {
     Resources: {
-      ...dynamoDbTables,
+      shortLinksTable: {
+        Type: 'AWS::DynamoDB::Table',
+        DeletionPolicy: 'Delete',
+        Properties: {
+          TableName: '${self:provider.environment.TABLE_NAME}',
+          BillingMode: 'PAY_PER_REQUEST',
+          KeySchema: [
+            { AttributeName: 'PK', KeyType: 'HASH' },
+            { AttributeName: 'SK', KeyType: 'RANGE' },
+          ],
+          AttributeDefinitions: [
+            { AttributeName: 'PK', AttributeType: 'S' },
+            { AttributeName: 'SK', AttributeType: 'S' },
+            { AttributeName: 'GSI1PK', AttributeType: 'S' },
+          ],
+          GlobalSecondaryIndexes: [
+            {
+              IndexName: 'GSI1',
+              KeySchema: [{ AttributeName: 'GSI1PK', KeyType: 'HASH' }],
+              Projection: {
+                ProjectionType: 'ALL',
+              },
+            },
+          ],
+        },
+      },
       EmailSQSQueue: {
         Type: 'AWS::SQS::Queue',
         Properties: {

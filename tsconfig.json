@@ -17,7 +17,9 @@
     "src/**/*.ts",
     "serverless.ts",
     "../EXAMPLE/src/functions/auth.service.ts",
-    "src/services/dbUsers.service copy.old"
+    "src/services/dbUsers.service copy.old",
+    "../EXAMPLE/dbUsers.service copy.ts",
+    "../EXAMPLE/db2Links.service.ts"
   ],
   "exclude": [
     "node_modules/**/*",

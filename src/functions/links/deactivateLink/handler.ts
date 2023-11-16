@@ -8,16 +8,21 @@ const deactivateLink = async (
 ): Promise<APIGatewayProxyResult> => {
   const userId = event?.requestContext?.authorizer?.principalId;
   const linkId = event.pathParameters?.linkId;
-
-  if (!linkId) {
-    throw new Error('Error to deactivate link');
+  try {
+    if (!linkId) {
+      throw new Error('Error to deactivate link');
+    }
+    const linkData = await deactivateUserLink(userId, linkId);
+    return formatJSONResponse(200, {
+      success: 'true',
+      data: linkData,
+    });
+  } catch (error) {
+    return formatJSONResponse(error.statusCode || 500, {
+      success: 'false',
+      error: error.message,
+    });
   }
-
-  const linkData = await deactivateUserLink(userId, linkId);
-  return formatJSONResponse(200, {
-    success: 'true',
-    data: linkData,
-  });
 };
 
 export const main = middyfy(deactivateLink);

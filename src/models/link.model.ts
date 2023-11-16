@@ -6,7 +6,10 @@ export enum LinkLifetime {
 }
 
 export interface ILink {
-  id: string;
+  PK: string;
+  SK: string;
+  GSI1PK: string;
+  linkId: string;
   userId: string;
   shortLink: string;
   originalLink: string;

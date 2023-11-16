@@ -1,6 +1,9 @@
 export interface IUser {
-  id: string;
+  PK: string;
+  SK: string;
+  GSI1PK: string;
+  userId: string;
   email: string;
   password: string;
-  token: string;
+  access_token: string;
 }

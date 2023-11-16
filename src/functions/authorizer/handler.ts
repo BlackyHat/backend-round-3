@@ -6,10 +6,9 @@ import {
 } from 'aws-lambda';
 import { JwtPayload, verify } from 'jsonwebtoken';
 import { findByID } from '@/services/dbUsers.service';
+import { formatJSONResponse } from '@/libs/api-gateway';
 
 const { JWT_SECRET } = process.env;
-
-type AuthorizerCallback = (error: string | null, policy?: AuthResponse) => void;
 
 const generatePolicy = (
   principalId: string,
@@ -42,31 +41,32 @@ const generatePolicy = (
 
 export const authorizer = async (
   event: APIGatewayTokenAuthorizerEvent,
-  context: APIGatewayEventDefaultAuthorizerContext,
-  callback: AuthorizerCallback
+  context: APIGatewayEventDefaultAuthorizerContext
 ) => {
   if (!event.authorizationToken) {
-    return callback('Unauthorized');
+    throw new Error('Unauthorized');
   }
 
   const tokenParts = event.authorizationToken.split(' ');
   const tokenValue = tokenParts[1];
 
   if (!(tokenParts[0].toLowerCase() === 'bearer' && tokenValue)) {
-    return callback('Unauthorized');
+    throw new Error('Unauthorized');
   }
 
   try {
-    const { id } = verify(tokenValue, String(JWT_SECRET)) as JwtPayload;
-    const user = await findByID(id);
+    const { userId } = verify(tokenValue, String(JWT_SECRET)) as JwtPayload;
+    const user = await findByID(userId);
     if (!user) {
-      return callback('Unauthorized');
+      throw new Error('Unauthorized');
     }
     if (context) {
-      context.userId = id;
+      context.userId = userId;
     }
-    return callback(null, generatePolicy(id, 'Allow', event.methodArn));
+    return generatePolicy(userId, 'Allow', event.methodArn);
   } catch (error) {
-    return callback('Unauthorized');
+    return formatJSONResponse(error.statusCode || 401, {
+      error: error.message || 'Unauthorized',
+    });
   }
 };

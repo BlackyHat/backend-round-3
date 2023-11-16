@@ -1,6 +1,5 @@
 import { SQSEvent } from 'aws-lambda';
 import { SendEmailCommand } from '@aws-sdk/client-ses';
-
 import { sesClient } from '@/libs/sesClient';
 
 export const deactivateLinkNotify = async (event: SQSEvent) => {
@@ -27,7 +26,6 @@ export const deactivateLinkNotify = async (event: SQSEvent) => {
 
     try {
       return await sesClient.send(command);
-      //TODO:
     } catch (error) {
       console.error(`Error sending email: ${error}`);
     }
