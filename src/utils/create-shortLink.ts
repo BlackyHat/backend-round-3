@@ -5,12 +5,12 @@ interface IShortLinkProps {
   shortLink?: string;
 }
 export default ({
-  protocol = 'http:/',
+  protocol = 'http',
   host,
   stage,
   shortLink,
 }: IShortLinkProps) =>
-  [protocol, host, stage, shortLink || createShorter()].join('/');
+  [protocol + ':/', host, stage, shortLink || createShorter()].join('/');
 
 function createShorter(linkLength = 6) {
   let shortLink = '';

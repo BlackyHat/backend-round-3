@@ -8,7 +8,6 @@ export default {
           'Fn::GetAtt': ['EmailSQSQueue', 'Arn'],
         },
         batchSize: 10,
-        reservedConcurrency: 10,
       },
     },
   ],

@@ -138,6 +138,7 @@ const serverlessConfiguration: AWS = {
         heapInitial: '200m',
         heapMax: '1g',
         migrate: true,
+        seed: true,
         convertEmptyValues: true,
       },
       stages: 'dev',

@@ -1,29 +1,14 @@
-import { IUser } from '@/models/user.model';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
-  DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
   UpdateCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 
-const { USERS_TABLE, IS_OFFLINE } = process.env;
-let client: DynamoDBClient;
+import { IUser } from '@/models/user.model';
+import { docClient } from '@/libs/dynamoDBClient';
 
-if (IS_OFFLINE === 'true') {
-  client = new DynamoDBClient({
-    region: 'localhost',
-    endpoint: 'http://localhost:8000',
-    credentials: {
-      accessKeyId: 'MockAccessKeyId',
-      secretAccessKey: 'MockSecretAccessKey',
-    },
-  });
-} else {
-  client = new DynamoDBClient({});
-}
-const docClient = DynamoDBDocumentClient.from(client);
+const { USERS_TABLE } = process.env;
 
 async function createOne(userData: IUser) {
   const command = new PutCommand({

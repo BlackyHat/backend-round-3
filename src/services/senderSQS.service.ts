@@ -1,14 +1,19 @@
-import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
+import { ILink } from '@/models/link.model';
+import { SendMessageCommand } from '@aws-sdk/client-sqs';
+import { sqsClient } from '@/libs/sqsClient';
 
-export const addQueueExpiredLinks = async (body: string) => {
-  const clientSQS = new SQSClient({});
+interface ILinkData extends ILink {
+  email: string;
+}
 
+export const addQueueExpiredLinks = async (linkData: ILinkData) => {
   const command = new SendMessageCommand({
-    MessageBody: JSON.stringify(body),
+    MessageBody: JSON.stringify(linkData),
     QueueUrl: process.env.SQS_QUEUE_URL,
   });
+
   try {
-    await clientSQS.send(command);
+    await sqsClient.send(command);
     console.log(`Event added successfully to Queue`);
   } catch (error) {
     console.error(`Error add email to queue`);

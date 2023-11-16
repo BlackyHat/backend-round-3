@@ -7,7 +7,7 @@ export default {
       http: {
         method: 'post',
         path: 'api/links',
-        authorizer: 'authorizerFunc',
+        authorizer: 'authorizer',
         request: {
           schemas: {
             'application/json': schema,

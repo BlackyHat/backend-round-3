@@ -1,31 +1,16 @@
-import { ILink, LinkLifetime } from '@/models/link.model';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
-  DynamoDBDocumentClient,
   PutCommand,
   QueryCommand,
   UpdateCommand,
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
+
+import { docClient } from '@/libs/dynamoDBClient';
+import { ILink, LinkLifetime } from '@/models/link.model';
 import { addQueueExpiredLinks } from './senderSQS.service';
 import { findByID } from './dbUsers.service';
 
-const { LINKS_TABLE, IS_OFFLINE } = process.env;
-let client: DynamoDBClient;
-
-if (IS_OFFLINE === 'true') {
-  client = new DynamoDBClient({
-    region: 'localhost',
-    endpoint: 'http://localhost:8000',
-    credentials: {
-      accessKeyId: 'MockAccessKeyId',
-      secretAccessKey: 'MockSecretAccessKey',
-    },
-  });
-} else {
-  client = new DynamoDBClient({});
-}
-const docClient = DynamoDBDocumentClient.from(client);
+const { LINKS_TABLE } = process.env;
 
 async function createUserLink(linkData: ILink) {
   const command = new PutCommand({
@@ -63,9 +48,7 @@ async function deactivateUserLink(userId: string, linkId: string) {
     }
     const linkData = result.Attributes as ILink;
     const user = await findByID(userId);
-    await addQueueExpiredLinks(
-      JSON.stringify({ email: user.email, ...linkData })
-    );
+    await addQueueExpiredLinks({ email: user.email, ...linkData });
     return linkData;
   } catch (error) {
     throw new Error(error.message || 'Error to deactivate link');

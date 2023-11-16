@@ -6,7 +6,7 @@ export default {
       http: {
         method: 'get',
         path: 'api/links',
-        authorizer: 'authorizerFunc',
+        authorizer: 'authorizer',
       },
     },
   ],

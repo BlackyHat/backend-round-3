@@ -6,7 +6,7 @@ export default {
       http: {
         method: 'put',
         path: 'api/links/deactivate/{linkId}',
-        authorizer: 'authorizerFunc',
+        authorizer: 'authorizer',
       },
     },
   ],

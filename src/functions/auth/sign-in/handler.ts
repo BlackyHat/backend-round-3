@@ -8,7 +8,6 @@ import {
 } from '@/libs/api-gateway';
 import { middyfy } from '@/libs/lambda';
 import { findOne, findByIdAndUpdate } from '@/services/dbUsers.service';
-import { validateAuth } from '@/validation/auth.validation';
 import schema from './schema';
 
 const { JWT_SECRET, TOKEN_TTL } = process.env;
@@ -18,7 +17,6 @@ const signIn: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
 ): Promise<APIGatewayProxyResult> => {
   try {
     const { email, password } = event.body;
-    validateAuth({ email, password });
 
     const [user] = await findOne(email);
     if (!user) {
