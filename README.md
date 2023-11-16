@@ -7,7 +7,7 @@ Long URLs can be inconvenient to use, especially in correspondence. To solve thi
 problem, there are services that shorten long links. We need to build our own cost-
 efficient and flexible API for a link shortener application
 
-# [API Documentation👀⚙️🖥️](https://documenter.getpostman.com/view/26203555/2s9YXpUJ1f)
+# [API Documentation](https://documenter.getpostman.com/view/26203555/2s9YXpUJ1f)👀⚙️🖥️
 
 ## Installation/deployment instructions ⚙️
 
