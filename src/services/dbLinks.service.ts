@@ -126,10 +126,6 @@ async function updateLinkVisit(userId: string, linkId: string) {
     }
     return result.Attributes;
   } catch (error) {
-    console.log('🚀 -----------------------------------🚀');
-    console.log('🚀 ~ updateLinkVisit ~ error:', error);
-    console.log('🚀 -----------------------------------🚀');
-
     throw new Error(error.message || 'Error create new link');
   }
 }
